@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sales Agent · Rep workspace</title>
+<style>
+:root{font-family:Inter,ui-sans-serif,system-ui,sans-serif;color:#172c29;background:#f3f5f1;font-size:15px}*{box-sizing:border-box}body{margin:0}header{background:#153e36;color:#fff;padding:32px max(24px,calc((100vw - 1320px)/2))}header small{color:#bad4ca;letter-spacing:.15em;text-transform:uppercase}h1{font-size:32px;letter-spacing:-.035em;margin:10px 0}header p{color:#cee0d9;margin:0}main{max-width:1368px;padding:24px;margin:auto}.toolbar{display:flex;flex-wrap:wrap;gap:16px;align-items:end;margin-bottom:22px}label{font-size:13px;font-weight:650;display:block}input,select,textarea{display:block;font:inherit;border:1px solid #c5d0c9;border-radius:8px;background:white;padding:10px;margin-top:7px;color:inherit}input{width:180px}textarea{width:100%;min-height:110px;resize:vertical}button{font:inherit;border:0;border-radius:8px;background:#1b5c49;color:white;padding:11px 16px;cursor:pointer;font-weight:650}button.secondary{background:#e4ece5;color:#224d3f}button:disabled{opacity:.5;cursor:wait}button:hover:enabled{filter:brightness(.94)}.layout{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(300px,1fr);gap:22px;align-items:start}.card{background:white;border:1px solid #dce3da;border-radius:14px;padding:23px;margin-bottom:20px;box-shadow:0 3px 12px #1a332506}.heading{display:flex;align-items:center;justify-content:space-between;gap:12px}h2{font-size:18px;margin:0 0 16px}h3{font-size:13px;color:#456759;text-transform:uppercase;letter-spacing:.08em;margin:20px 0 8px}.content{white-space:pre-wrap;line-height:1.65;overflow-wrap:anywhere}.muted{color:#728179}.actions{margin-top:12px}pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px;line-height:1.6;background:#f4f7f3;border-radius:8px;padding:16px;max-height:670px;overflow:auto}#status{min-height:24px;margin-bottom:14px;font-size:14px}#status.error{color:#9b3328}.badge{font-size:11px;background:#e8f1e7;color:#315342;padding:5px 8px;border-radius:20px;white-space:nowrap}.draft{border-top:1px solid #edf0eb;padding-top:2px}.note{font-size:12px;color:#728179;line-height:1.5}#conversation:empty{display:none}.turn{border-left:3px solid #a9caba;padding:10px 14px;margin:14px 0;background:#f7faf6}.turn strong{font-size:12px;color:#456759;display:block;margin-bottom:6px}@media(max-width:850px){.layout{grid-template-columns:1fr}header{padding:26px 24px}.toolbar{gap:12px}main{padding:18px}}
+</style>
+<style>
+.briefs{display:grid;grid-template-columns:1fr 1fr;gap:22px}.formatted{white-space:normal;line-height:1.65;overflow-wrap:anywhere}.formatted h1,.formatted h2,.formatted h3{font-size:17px;letter-spacing:normal;text-transform:none;color:#244e41;margin:16px 0 10px}.formatted p{margin:10px 0}.formatted li{margin:6px 0}.formatted ul,.formatted ol{padding-left:22px}.meeting-fields{display:flex;flex-wrap:wrap;gap:12px}.meeting-fields input{width:230px}#new-fact{border-left:3px solid #1b5c49;background:#edf5ec;padding:12px;margin-top:14px}#new-fact:empty{display:none}@media(max-width:850px){.briefs{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header><small>Sales Agent / Local workspace</small><h1>Every conversation, remembered.</h1><p>Brief your rep, continue the conversation, and prepare the next touchpoint.</p></header>
+<main>
+<div class="toolbar">
+<label>Lead<input id="lead" value="Alex Rivera" maxlength="120"></label>
+<label>Lead language<select id="language"><option value="auto">Use remembered preference</option><option>Spanish</option><option>English</option><option>French</option><option>German</option><option>Hindi</option><option>Japanese</option></select></label>
+<button id="refresh">Load brief &amp; outreach</button>
+</div>
+<div id="status" role="status" aria-live="polite">Ready to recall the lead’s memory.</div>
+<div class="briefs">
+<div class="card"><div class="heading"><h2>With memory</h2><span class="badge">English · Hindsight</span></div><div id="brief" class="formatted muted">Loading the remembered lead brief…</div></div>
+<div class="card"><div class="heading"><h2>Without memory</h2><span class="badge">Empty bank</span></div><div id="generic-brief" class="formatted muted">Loading the generic brief…</div><details><summary class="note">Show empty-bank recall</summary><pre id="empty-facts">Loading…</pre></details></div>
+</div>
+<div class="layout">
+<section>
+<div class="card"><h2>Continue the call</h2><p class="note">The response follows the lead’s language preference. Both turns are saved to memory after generation.</p><div id="conversation" aria-live="polite"></div><form id="reply-form"><label for="message">Lead’s reply</label><textarea id="message" placeholder="Type what the lead said…" required maxlength="8000"></textarea><div class="actions"><button type="submit">Generate &amp; remember reply</button></div></form></div>
+<div class="card"><h2>Confirm a meeting</h2><p class="note">Save an explicit confirmation when the lead agrees. This updates memory; it does not create a calendar invitation. Timezone is unspecified.</p><form id="meeting-form"><div class="meeting-fields"><label>Confirmed date &amp; time<input id="meeting-at" type="datetime-local" value="2026-11-10T16:30" required></label><label>Attendees<input id="attendees" value="the finance director" maxlength="200" required></label></div><div class="actions"><button type="submit">Confirm &amp; remember meeting</button></div></form><div id="new-fact" class="content" role="status"></div></div>
+<div class="card"><div class="heading"><h2>Outreach drafts</h2><button id="outbound" class="secondary">Regenerate</button></div><p class="note">Drafts only. Review before sending.</p><div class="draft"><h3>Email</h3><div id="email" class="content muted">No draft yet.</div></div><div class="draft"><h3>LinkedIn note</h3><div id="linkedin" class="content muted">No draft yet.</div></div><div class="draft"><h3>X message</h3><div id="x" class="content muted">No draft yet.</div><p id="x-count" class="note"></p></div></div>
+</section>
+<aside class="card"><div class="heading"><h2>Recalled facts</h2><span class="badge">lead-alex-rivera</span></div><p class="note" id="facts-label">Raw Hindsight recall response used for the most recent action.</p><pre id="facts">No memory loaded yet.</pre></aside>
+</div>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+let busy=false;
+function text(id,value){$(id).textContent=value;$(id).classList.remove('muted')}
+function setStatus(message,error=false){$('status').textContent=message;$('status').classList.toggle('error',error)}
+function setBusy(value){busy=value;document.querySelectorAll('button,input,select,textarea').forEach(el=>el.disabled=value)}
+async function request(path,extra={}){
+ const response=await fetch('/api/'+path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({lead_id:$('lead').value.trim(),language:$('language').value,...extra})});
+ const result=await response.json();if(!response.ok)throw new Error(result.error||'Request failed.');
+ if(result.facts){text('facts',JSON.stringify(result.facts,null,2));text('facts-label','Raw Hindsight recall response used for '+path+'.')}
+ return result;
+}
+function drafts(result){for(const key of ['email','linkedin','x'])text(key,result.drafts[key]);text('x-count',Array.from(result.drafts.x).length+' / 280 characters')}
+function showBriefs(result){
+ // The server renders Markdown and sanitizes to formatting-only HTML.
+ $('brief').innerHTML=result.brief_html;$('brief').classList.remove('muted');
+ $('generic-brief').innerHTML=result.generic.brief_html;$('generic-brief').classList.remove('muted');
+ text('empty-facts',JSON.stringify(result.generic.facts,null,2));
+}
+async function run(work){if(busy)return;setBusy(true);try{await work()}catch(error){setStatus(error.message,true)}finally{setBusy(false)}}
+$('refresh').onclick=()=>run(async()=>{
+ text('brief','Recalling and reflecting…');text('generic-brief','Preparing the empty-bank comparison…');for(const key of ['email','linkedin','x'])text(key,'Waiting for memory…');text('facts','Loading…');text('x-count','');$('conversation').replaceChildren();
+ setStatus('Recalling lead memory and preparing the English brief…');
+ const result=await request('brief');showBriefs(result);
+ setStatus('Brief ready. Preparing outreach in the lead’s language…');drafts(await request('outbound'));setStatus('Brief and outreach ready.');
+});
+$('outbound').onclick=()=>run(async()=>{setStatus('Recalling memory and drafting outreach…');drafts(await request('outbound'));setStatus('Outreach drafts ready.')});
+$('reply-form').onsubmit=event=>{event.preventDefault();run(async()=>{
+ const message=$('message').value;setStatus('Recalling context, generating a reply, and remembering both turns…');const result=await request('reply',{message});
+ for(const [name,body] of [['Lead',message],['Sales assistant · '+result.language,result.reply]]){const turn=document.createElement('div');turn.className='turn';const label=document.createElement('strong');label.textContent=name;const content=document.createElement('div');content.className='content';content.textContent=body;turn.append(label,content);$('conversation').append(turn)}
+ $('message').value='';if(result.new_fact){text('new-fact',result.new_fact);showBriefs(await request('brief'))}setStatus(result.saved?'Reply ready. Both turns saved to Hindsight.':result.warning,!result.saved);
+})};
+$('meeting-form').onsubmit=event=>{event.preventDefault();run(async()=>{setStatus('Saving the confirmed meeting and recalling updated facts…');const result=await request('meeting',{meeting_at:$('meeting-at').value,attendees:$('attendees').value});text('new-fact',result.new_fact);showBriefs(await request('brief'));setStatus('Meeting confirmation saved. Updated memory and both briefs are visible.')})};
+$('lead').onchange=()=>{for(const key of ['brief','generic-brief','email','linkedin','x'])text(key,'Load this lead to generate content.');text('new-fact','');text('facts','No memory loaded for this lead.');text('x-count','');$('conversation').replaceChildren();setStatus('Lead changed. Load the brief and outreach.')};
+$('refresh').click();
+</script>
+</body></html>
