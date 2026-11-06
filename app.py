@@ -4,7 +4,9 @@ import json
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-from agent import compare_briefs, confirm_meeting, continue_call, draft_outbound
+from agent import (add_lead, compare_briefs, confirm_meeting, continue_call, draft_outbound,
+                   import_csv, queue_outbound, key_notes, activity_state, set_stage)
+from leads import DuplicateLeadError, get_lead, list_leads, validate_lead, pipeline_counts, STAGES
 
 HOST, PORT = "127.0.0.1", 8787
 PAGE = Path(__file__).with_name("index.html")
@@ -32,6 +34,12 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         if not self.local_request():
             return self.json_response(403, {"error": "Local requests only."})
+        if self.path == "/api/leads":
+            return self.json_response(200, {"leads": list_leads(), "counts": pipeline_counts()})
+        if self.path == "/sample-leads.csv":
+            return self.send(200, PAGE.with_name("sample-leads.csv").read_bytes(), "text/csv; charset=utf-8")
+        if self.path == "/voice.js":
+            return self.send(200, PAGE.with_name("voice.js").read_bytes(), "text/javascript; charset=utf-8")
         if self.path != "/":
             return self.json_response(404, {"error": "Not found."})
         self.send(200, PAGE.read_bytes(), "text/html; charset=utf-8")
@@ -43,15 +51,32 @@ class Handler(BaseHTTPRequestHandler):
             return self.json_response(403, {"error": "Local requests only."})
         if self.headers.get_content_type() != "application/json":
             return self.json_response(415, {"error": "JSON required."})
-        if self.path not in {"/api/brief", "/api/reply", "/api/outbound", "/api/meeting"}:
+        if self.path not in {"/api/leads", "/api/import", "/api/queue", "/api/stage", "/api/insights", "/api/activity", "/api/brief", "/api/reply", "/api/outbound", "/api/meeting"}:
             return self.json_response(404, {"error": "Not found."})
         try:
             length = int(self.headers.get("Content-Length", "0"))
-            if not 0 < length <= 16000:
+            limit = 3_100_000 if self.path == "/api/import" else 80000
+            if not 0 < length <= limit:
                 raise ValueError()
             data = json.loads(self.rfile.read(length))
             if not isinstance(data, dict):
                 raise ValueError()
+            if self.path == "/api/import":
+                try:
+                    return self.json_response(200, import_csv(data.get("csv")))
+                except ValueError as error:
+                    return self.json_response(400, {"error": str(error)})
+            if self.path == "/api/leads":
+                try:
+                    validated = validate_lead(data)
+                except ValueError as error:
+                    return self.json_response(400, {"error": str(error)})
+                try:
+                    return self.json_response(201, add_lead(validated))
+                except DuplicateLeadError as error:
+                    return self.json_response(409, {"error": str(error)})
+                except Exception:
+                    return self.json_response(502, {"error": "Could not save the new lead to Hindsight. Your form is unchanged; check service availability and retry."})
             lead = data.get("lead_id", "Alex Rivera")
             language = data.get("language", "auto")
             message = data.get("message", "")
@@ -59,12 +84,21 @@ class Handler(BaseHTTPRequestHandler):
                 raise ValueError()
             if not lead.strip() or len(lead) > 120 or len(language) > 80 or len(message) > 8000:
                 raise ValueError()
+            lead = get_lead(lead)["id"]
+            if self.path == "/api/queue":
+                channel, draft = data.get("channel"), data.get("text")
+                if channel not in {"email", "linkedin", "x"} or not isinstance(draft, str) or not draft.strip() or len(draft) > 12000:
+                    raise ValueError()
+                if channel == "x" and len(draft) > 280:
+                    raise ValueError()
+            if self.path == "/api/stage" and data.get("stage") not in STAGES:
+                raise ValueError()
             if self.path == "/api/reply" and not message.strip():
                 raise ValueError()
             if self.path == "/api/meeting":
                 from datetime import datetime
                 meeting_at = data.get("meeting_at", "")
-                attendees = data.get("attendees", "the finance director")
+                attendees = data.get("attendees", "")
                 if not isinstance(meeting_at, str) or not isinstance(attendees, str) or not attendees.strip() or len(attendees) > 200:
                     raise ValueError()
                 datetime.strptime(meeting_at, "%Y-%m-%dT%H:%M")
@@ -73,6 +107,14 @@ class Handler(BaseHTTPRequestHandler):
         try:
             if self.path == "/api/brief":
                 result = compare_briefs(lead)
+            elif self.path == "/api/queue":
+                result = queue_outbound(lead, channel, draft)
+            elif self.path == "/api/stage":
+                result = set_stage(lead, data["stage"])
+            elif self.path == "/api/insights":
+                result = key_notes(lead)
+            elif self.path == "/api/activity":
+                result = activity_state(lead)
             elif self.path == "/api/meeting":
                 result = confirm_meeting(lead, meeting_at, attendees)
             elif self.path == "/api/outbound":

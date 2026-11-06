@@ -1,0 +1,4 @@
+name,company,language,note
+CSV Lead One,Import Check One,English,Imported to verify the New pipeline stage. No conversation yet.
+CSV Lead Two,Import Check Two,Spanish,Imported to verify separate lead memory. No conversation yet.
+CSV Lead Three,Import Check Three,English,Imported to verify CSV note retention. No conversation yet.

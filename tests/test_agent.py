@@ -1,4 +1,6 @@
 import unittest
+import tempfile
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
@@ -7,6 +9,11 @@ import agent
 
 class SalesAgentTests(unittest.TestCase):
     def setUp(self):
+        temp = tempfile.TemporaryDirectory()
+        self.addCleanup(temp.cleanup)
+        database = patch("leads.DATABASE", Path(temp.name) / "leads.sqlite3")
+        database.start()
+        self.addCleanup(database.stop)
         self.client = MagicMock()
         self.client.__enter__.return_value = self.client
         self.client.recall.return_value.model_dump.return_value = {
@@ -78,7 +85,7 @@ class SalesAgentTests(unittest.TestCase):
         self.assertNotIn("* Spanish", compact)
 
     def test_meeting_confirmation_is_retained_and_recalled(self):
-        result = agent.confirm_meeting("Alex Rivera", "2026-11-10T16:30")
+        result = agent.confirm_meeting("Alex Rivera", "2026-11-10T16:30", "the finance director")
         saved = self.client.retain.call_args.kwargs
         self.assertEqual(saved["bank_id"], agent.BANK_ID)
         self.assertIn("confirmed", saved["content"])
@@ -97,6 +104,28 @@ class SalesAgentTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             agent.confirm_meeting("Alex Rivera", "not a date")
         self.client.retain.assert_not_called()
+
+    @patch("agent.generate", return_value={"reply": "Hello", "language": "English",
+           "email": "Hello", "linkedin": "Hello", "x": "Hello"})
+    def test_all_operations_stay_in_the_selected_leads_bank(self, generate):
+        from leads import LEADS
+        self.client.reflect.return_value = SimpleNamespace(text="## Brief\nUnknown details.")
+        for lead in LEADS:
+            with self.subTest(lead=lead["id"]):
+                self.client.reset_mock()
+                agent.brief_rep(lead["id"])
+                self.assertEqual(self.client.reflect.call_args.kwargs["bank_id"], lead["id"])
+                agent.draft_outbound(lead["id"])
+                agent.continue_call(lead["id"], "Hello")
+                agent.confirm_meeting(lead["id"], "2026-11-10T16:30", "the rep")
+                for call in self.client.recall.call_args_list + self.client.retain.call_args_list:
+                    self.assertEqual(call.kwargs["bank_id"], lead["id"])
+                self.assertIn(lead["name"], self.client.retain.call_args.kwargs["content"])
+
+    def test_unknown_lead_is_rejected_before_memory_is_accessed(self):
+        with self.assertRaises(ValueError):
+            agent.brief_rep("unknown-person")
+        self.client.recall.assert_not_called()
 
 
 if __name__ == "__main__":
