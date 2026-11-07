@@ -10,9 +10,17 @@ pip install -r requirements.txt
 python app.py
 ```
 
+In Windows PowerShell, activate and run it with:
+
+```powershell
+.\.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+python app.py
+```
+
 Open http://127.0.0.1:8787 for Helio's sales desk. Click Alex Rivera, Mei Chen, Luis Ortega, or Hana Okonkwo to load their formatted English memory brief beside an empty-bank brief. Each lead has an isolated memory bank. Readable fact lines sit beside the call box, meeting confirmation form, and email/LinkedIn/X drafts. Raw JSON is collapsed behind **Show recall**. The default language follows remembered preferences or past conversation language; unknown languages fall back to English.
 
-Configuration is loaded from this repository's `.env`, regardless of your current directory. Required settings: `HINDSIGHT_API_URL`, `HINDSIGHT_API_KEY`, `GROQ_API_KEY`, and `GROQ_MODEL`. For a fresh setup, create a virtual environment and copy `.env.example` to `.env`, then fill in your existing credentials. Never commit credentials.
+Configuration is loaded from this repository's `.env.local` when present, otherwise `.env`, regardless of your current directory. Required settings: `HINDSIGHT_API_URL`, `HINDSIGHT_API_KEY`, `GROQ_API_KEY`, and `GROQ_MODEL`. For a fresh setup, create a virtual environment and copy `.env.example` to `.env.local` (or `.env`), then fill in your existing credentials. Never commit credentials.
 
 ## How it works
 

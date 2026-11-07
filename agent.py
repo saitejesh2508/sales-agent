@@ -19,7 +19,8 @@ from import_leads import parse_lead_csv
 
 BANK_ID = "lead-alex-rivera"
 EMPTY_BANK_ID = "lead-alex-rivera-empty"
-load_dotenv(Path(__file__).with_name(".env"))
+LOCAL_ENV = Path(__file__).with_name(".env.local")
+load_dotenv(LOCAL_ENV if LOCAL_ENV.is_file() else LOCAL_ENV.with_name(".env"))
 
 
 def setting(name: str) -> str:

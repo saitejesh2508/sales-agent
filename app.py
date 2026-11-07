@@ -17,13 +17,16 @@ class Handler(BaseHTTPRequestHandler):
         pass  # Never log user content or upstream exceptions.
 
     def send(self, status, body, content_type="application/json; charset=utf-8"):
-        self.send_response(status)
-        self.send_header("Content-Type", content_type)
-        self.send_header("Content-Length", str(len(body)))
-        self.send_header("Cache-Control", "no-store")
-        self.send_header("X-Content-Type-Options", "nosniff")
-        self.end_headers()
-        self.wfile.write(body)
+        try:
+            self.send_response(status)
+            self.send_header("Content-Type", content_type)
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("X-Content-Type-Options", "nosniff")
+            self.end_headers()
+            self.wfile.write(body)
+        except ConnectionError:
+            pass
 
     def json_response(self, status, data):
         self.send(status, json.dumps(data, ensure_ascii=False).encode())
